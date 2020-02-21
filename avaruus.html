@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <title>three.js webgl - geometry - cube</title>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+    </head>
+    <body>
+        <script src="https://threejs.org/build/three.js"></script>
+        <script src="https://threejs.org/examples/js/controls/OrbitControls.js"></script>
+        <script src="postprocessing.min.js"></script>
+        <script>
+
+            var camera, scene, renderer, composer;
+            var mesh;
+            var pivot = new THREE.Group();
+
+            init();
+            animate();
+
+            function init() {
+
+                camera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 1, 100000 );
+                camera.position.z = -1500;
+                camera.rotation.y = 11;
+
+                scene = new THREE.Scene();
+
+                //earth
+                var texture = new THREE.TextureLoader().load( 'earthmap.jpg' );
+                var earthNMtexture = new THREE.TextureLoader().load( 'earth_NM.png' );
+                var earthEMtexture = new THREE.TextureLoader().load( 'earth_em4.png' );
+                var geometry = new THREE.SphereBufferGeometry( 50, 32, 32 );
+                var material = new THREE.MeshPhongMaterial( { map: texture, normalMap: earthNMtexture, emissiveMap:earthEMtexture, emissive: "yellow", emissiveIntensity:1.5} );
+                mesh = new THREE.Mesh( geometry, material );
+                mesh.material.shading = THREE.SmoothShading;
+                mesh.receiveShadow = true;
+                mesh.castShadow = true;
+                mesh.position.x = 1200;
+                scene.add( mesh );
+                
+
+                //sun ( vaiheddu uuteen)
+                var suntexture = new THREE.TextureLoader().load( 'sun.jpg' );
+                var sunEMtexture = new THREE.TextureLoader().load( 'sun_em.png' );
+                var sunNMtexture = new THREE.TextureLoader().load( 'sunmap_NM.png' );
+                var sungeometry = new THREE.SphereBufferGeometry( 100, 32, 32 );
+               
+                var sunmaterial = new THREE.MeshPhongMaterial( { map: suntexture, normalMap: sunNMtexture, glowMap:sunEMtexture} );
+                //var sunmaterial = new THREE.MeshPhongMaterial( { map: suntexture, emissive:0xf3ffe2, emissiveIntensity: 0.05, normalMap: sunNMtexture } );
+                //sungeometry.sunmaterial.shading = THREE.FlatShading;
+                sunmesh = new THREE.Mesh( sungeometry, sunmaterial );
+                sunmesh.material.shading = THREE.SmoothShading;
+                //sunmesh.sunmaterial.smoothShading = true;
+                //mesh.position.x = 200;
+                //scene.add( sunmesh ); 
+
+                //MOOOOOOOOOOOOOOON
+                var moontexture = new THREE.TextureLoader().load( 'moon.jpg' );
+                var moonNMtexture = new THREE.TextureLoader().load( 'moon_NM.png' );
+                var moongeometry = new THREE.SphereBufferGeometry( 25, 32, 32 );
+                var moonmaterial = new THREE.MeshPhongMaterial( { map: moontexture, normalMap:moonNMtexture } );
+                moonmesh = new THREE.Mesh( moongeometry, moonmaterial );
+                moonmesh.material.shading = THREE.SmoothShading;
+                moonmesh.receiveShadow = true;
+                moonmesh.castShadow = true;
+                moonmesh.position.x = 100;
+                scene.add( moonmesh );
+
+                //merc
+                var merctexture = new THREE.TextureLoader().load( 'merc.png' );
+                var mercNMtexture = new THREE.TextureLoader().load( 'merc_NM.png' );
+                var mercgeometry = new THREE.SphereBufferGeometry( 30, 32, 32 );
+                var mercmaterial = new THREE.MeshPhongMaterial( { map: merctexture, normalMap:mercNMtexture } );
+                mercmesh = new THREE.Mesh( mercgeometry, mercmaterial );
+                mercmesh.material.shading = THREE.SmoothShading;
+                mercmesh.receiveShadow = true;
+                mercmesh.castShadow = true;
+                mercmesh.position.x = 450;
+                scene.add( mercmesh );
+
+                 //mars
+                 var marstexture = new THREE.TextureLoader().load( 'mars.png' );
+                var marsNMtexture = new THREE.TextureLoader().load( 'mars_NM.png' );
+                var marsgeometry = new THREE.SphereBufferGeometry( 30, 32, 32 );
+                var marsmaterial = new THREE.MeshPhongMaterial( { map: marstexture, normalMap:marsNMtexture } );
+                marsmesh = new THREE.Mesh( mercgeometry, mercmaterial );
+                marsmesh.material.shading = THREE.SmoothShading;
+                marsmesh.receiveShadow = true;
+                marsmesh.castShadow = true;
+                marsmesh.position.x = 650;
+                scene.add( marsmesh );
+
+
+                //lights
+                var amby = new THREE.AmbientLight( 0x404040, 0.1 ); // soft white light
+                //scene.add( amby );
+
+                var light = new THREE.PointLight( 0xffb84d, 5, 5500 ); //auringon sisällä oleva lamppu tulee kait meshin läpi koska sisällä?
+                light.castShadow = true;
+                light.shadow.camera.near = 0.1;
+                light.shadow.camera.far= 5000;
+                light.position.set( 0, 0, 0 );
+                light.shadow.radius = 15;
+                light.shadow.mapSize.width = 2048; // default is 512
+                light.shadow.mapSize.height = 2048;
+                scene.add( light );
+                //
+
+                pivot = new THREE.Object3D();   //earth to sun
+                scene.add(pivot);
+                pivot.add(mesh);
+
+                pivot2 = new THREE.Object3D();   //moon to earth
+                scene.add(pivot2);
+                mesh.add(pivot2);
+                pivot2.add(moonmesh);
+
+                pivot3 = new THREE.Object3D();   //merc to sun
+                scene.add(pivot3);
+                pivot3.add(mercmesh);
+
+                pivot4 = new THREE.Object3D();   //mars to sun
+                scene.add(pivot4);
+                pivot4.add(marsmesh);
+                
+               
+
+        //sunlight
+                var sungeometry2 = new THREE.SphereBufferGeometry( 105, 32, 32 );
+                var sunmaterial2 = new THREE.MeshBasicMaterial( {map: suntexture, normalMap: sunNMtexture} );
+                //var sunmaterial = new THREE.MeshPhongMaterial( { map: suntexture, emissive:0xf3ffe2, emissiveIntensity: 0.05, normalMap: sunNMtexture } );
+                //sungeometry.sunmaterial.shading = THREE.FlatShading;
+                sunmesh2 = new THREE.Mesh( sungeometry2, sunmaterial2 );
+               // sunmesh2.scale.setX(1.2);
+                sunmesh2.material.shading = THREE.SmoothShading;
+                //sunmesh.sunmaterial.smoothShading = true;
+                //mesh.position.x = 200;
+                //sunmesh2.position.set(0 ,100 ,-500);
+                scene.add( sunmesh2 );
+
+                let areaImage = new Image();
+                    areaImage.src = POSTPROCESSING.SMAAEffect.areaImageDataURL;
+                let searchImage = new Image();
+                    searchImage.src = POSTPROCESSING.SMAAEffect.searchImageDataURL;
+                let smaaEffect = new POSTPROCESSING.SMAAEffect(searchImage,areaImage,1);
+               
+
+
+
+let godraysEffect = new POSTPROCESSING.GodRaysEffect(camera, sunmesh2, {
+  resolutionScale: 2,
+  density: 3.9,
+  decay: 0.94,
+  weight: 1.2,
+  samples: 300
+});
+
+
+
+
+                //skybox
+
+                    var materialArray = [];
+                var texture_ft = new THREE.TextureLoader().load( 'kenon_star_ft.jpg');
+                //let texture_ftEM = new THREE.TextureLoader().load( 'kenon_star_ftEM.png');
+                var texture_bk = new THREE.TextureLoader().load( 'kenon_star_bk.jpg');
+                var texture_up = new THREE.TextureLoader().load( 'kenon_star_up.jpg');
+                var texture_dn = new THREE.TextureLoader().load( 'kenon_star_dn.jpg');
+                var texture_rt = new THREE.TextureLoader().load( 'kenon_star_rt.jpg');
+                var texture_lf = new THREE.TextureLoader().load( 'kenon_star_lf.jpg');
+                
+                materialArray.push(new THREE.MeshBasicMaterial( { map: texture_ft }));
+                materialArray.push(new THREE.MeshBasicMaterial( { map: texture_bk }));
+                materialArray.push(new THREE.MeshBasicMaterial( { map: texture_up }));
+                materialArray.push(new THREE.MeshBasicMaterial( { map: texture_dn }));
+                materialArray.push(new THREE.MeshBasicMaterial( { map: texture_rt }));
+                materialArray.push(new THREE.MeshBasicMaterial( { map: texture_lf }));
+                
+                for (let i = 0; i < 6; i++)
+                materialArray[i].side = THREE.BackSide;
+                
+                var skyboxGeo = new THREE.BoxGeometry( 100000, 100000, 100000);
+                var skybox1 = new THREE.Mesh( skyboxGeo, materialArray );
+                skybox1.material.shading = THREE.SmoothShading;
+                skybox1.rotation.y = 11;
+        
+                scene.add(skybox1);
+                
+
+                //tahtien vilkkuminen kuinka saada musta transparentiksii
+                /*var startexture = new THREE.TextureLoader().load( 'startxtr4.png' );
+                var stargeometry = new THREE.SphereBufferGeometry( 2000, 32, 32 );
+               
+                var starmaterial = new THREE.MeshLambertMaterial( {map:startexture, transparent : true, opacity:0.5} );
+                starmaterial.alphaTest = 0.5;
+                starmaterial.side = THREE.BackSide;
+                //var sunmaterial = new THREE.MeshPhongMaterial( { map: suntexture, emissive:0xf3ffe2, emissiveIntensity: 0.05, normalMap: sunNMtexture } );
+                //sungeometry.sunmaterial.shading = THREE.FlatShading;
+                starmesh = new THREE.Mesh( stargeometry, starmaterial );
+                //sunmesh.sunmaterial.smoothShading = true;
+                //mesh.position.x = 200;
+                starmesh.material.shading = THREE.SmoothShading;
+                scene.add( starmesh );*/
+
+                //render settings
+                renderer = new THREE.WebGLRenderer( { antialias: true } );
+                renderer.setPixelRatio( window.devicePixelRatio );
+                renderer.setSize( window.innerWidth, window.innerHeight );
+                renderer.shadowMap.enabled = true;
+                renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+                document.body.appendChild( renderer.domElement );
+                renderer.setClearColor( 0x000000, 0 );
+
+                composer = new POSTPROCESSING.EffectComposer(renderer);
+
+                composer.addPass(new POSTPROCESSING.RenderPass(scene, camera));
+                const effectPass = new POSTPROCESSING.EffectPass(
+                    camera,
+                    new POSTPROCESSING.BloomEffect(), smaaEffect,
+                    godraysEffect
+                );
+                effectPass.renderToScreen = true;
+                composer.addPass(effectPass);
+                //
+
+                controls = new THREE.OrbitControls(camera, renderer.domElement);
+
+                window.addEventListener( 'resize', onWindowResize, false );
+            
+
+            }
+
+            function onWindowResize() {
+
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+
+                renderer.setSize( window.innerWidth, window.innerHeight );
+
+            }
+
+            function animate() {
+
+                requestAnimationFrame( animate );
+               // skybox1.rotation.y += 0.001; ei toimi?
+                pivot.rotation.y += 0.002; //earth
+                mesh.rotation.y += 0.005;
+
+                pivot2.rotation.y += 0.03; //mooon
+                moonmesh.rotation.y += 0.01;
+
+                pivot3.rotation.y += 0.004; //merc
+                mercmesh.rotation.y += 0.005;
+
+                pivot4.rotation.y += 0.006; //mars
+                marsmesh.rotation.y += 0.009;
+
+                sunmesh2.rotation.y += 0.005;
+
+               
+                
+                //starmesh.rotation.y += 0.01;
+
+                controls.update();
+                composer.render(scene, camera);
+                //renderer.render( scene, camera );
+                
+
+            }
+
+        </script>
+
+    </body>
+</html>
